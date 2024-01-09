@@ -2,6 +2,7 @@ import {
   ApplicationCommandDataResolvable,
   BitFieldResolvable,
   Client,
+  ClientEvents,
   Collection,
   GatewayIntentsString,
   IntentsBitField,
@@ -17,8 +18,11 @@ import {
   ComponentsModal,
   ComponentsSelect,
 } from "./types/commands";
+import { EventType } from "./types/event";
 dotenv.config();
 
+const fileCondition = (fileName: string) =>
+      fileName.endsWith(".ts") || fileName.endsWith(".js");
 export class ExtendedClient extends Client {
   public commands: Collection<string, CommandType> = new Collection();
   public buttons: ComponentsButton = new Collection();
@@ -44,6 +48,7 @@ export class ExtendedClient extends Client {
 
   public start() {
     this.registerModules();
+    this.registerEvents();
     this.login(process.env.BOT_TOKEN);
   }
 
@@ -64,8 +69,7 @@ export class ExtendedClient extends Client {
   private registerModules() {
     const slashCommands: Array<ApplicationCommandDataResolvable> = new Array();
     const commandsPath = path.join(__dirname, "..", "commands");
-    const fileCondition = (fileName: string) =>
-      fileName.endsWith(".ts") || fileName.endsWith(".js");
+    
     fs.readdirSync(commandsPath).forEach((local) => {
       fs.readdirSync(commandsPath + `/${local}/`)
         .filter(fileCondition)
@@ -87,5 +91,23 @@ export class ExtendedClient extends Client {
     });
 
     this.on("ready", () => this.registerCommands(slashCommands));
+  }
+
+  private registerEvents() {
+    const eventsPath = path.join(__dirname, "..", "events");
+    fs.readdirSync(eventsPath).forEach(local => {
+      fs.readdirSync(`${eventsPath}/${local}`).filter(fileCondition)
+      .forEach(async fileName => {
+        const { name, once, run }: EventType<keyof ClientEvents> = (await import(`../events/${local}/${fileName}`))?.default;
+        try {
+          if(name) (once) ? this.once(name, run) : this.on(name, run);
+        }catch(err) {
+          console.log(
+            `❌ An error occurred event: \n${err}`
+              .red
+          )
+        }
+      })
+    })
   }
 }
