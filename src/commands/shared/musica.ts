@@ -1,4 +1,4 @@
-import { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel } from "@discordjs/voice";
+import { AudioPlayerStatus, createAudioPlayer, createAudioResource, getVoiceConnection, joinVoiceChannel } from "@discordjs/voice";
 import { ApplicationCommandOptionType, ApplicationCommandType, ChannelType, VoiceChannel } from "discord.js";
 import ytdl from "ytdl-core";
 import { Command } from "../../structs/types/commands";
@@ -24,24 +24,28 @@ export default new Command({
     // outras opções aqui...
   ],
   async run({ interaction, options }) {
-
-    const channel = options.getChannel("chat", true);
     await interaction.deferReply({ephemeral: true})
-
+    const connection = getVoiceConnection(interaction.guildId ?? '');
+    const channelId = connection?.joinConfig.channelId;
+    const channel = options.getChannel("chat", true);
+    console.log(`channelId: ${channelId} | channelId Atual: ${channel.id}`)
+    
+    if(channelId && channelId !== channel.id) {
+      await interaction.editReply({
+        content: `O bot já está online em um canal de voz!`
+      })
+      return;
+    }
     if(channel instanceof VoiceChannel) {
-
       const msg = options.getString("link", true);
-
       if(!msg) return await interaction.editReply({
         content: "É ncessario informa um link do youtube!"
       });
-
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: channel.guildId,
             adapterCreator: channel.guild.voiceAdapterCreator,
         });
-        console.log(ytdl.validateURL(msg))
         if(!ytdl.validateURL(msg)) {
           await interaction.editReply({
             content: `Link informado está invalido ou é um link privado, tente outro link!`
