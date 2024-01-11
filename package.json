@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node src/index.ts",
     "build": "tsc src/index.ts",
-    "start": "tsc src/index.ts && node ."
+    "start": "tsc src/index.ts && node .",
+    "nodemon": "nodemon src/index.ts"
   },
   "keywords": [],
   "author": "",
