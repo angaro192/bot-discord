@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Launch Program",
+        "type": "node",
+        "request": "launch",
+        "args": ["${workspaceFolder}/src/index.ts"], // Atualize o caminho para o seu arquivo de entrada
+        "runtimeArgs": ["-r", "ts-node/register"],
+        "env": {"TS_NODE_PROJECT": "${workspaceFolder}/tsconfig.json"},
+        "protocol": "inspector"
+      }
+    ]
+  }
