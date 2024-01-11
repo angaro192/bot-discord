@@ -15,32 +15,69 @@ export default new Command({
       channelTypes: [ChannelType.GuildVoice], // Certifique-se de que apenas canais de voz são selecionáveis
       required: true
     },
+    {
+      name: "link",
+      description: "Informe o link do youtube",
+      type: ApplicationCommandOptionType.String,
+      required: true
+    },
     // outras opções aqui...
   ],
   async run({ interaction, options }) {
+
     const channel = options.getChannel("chat", true);
     await interaction.deferReply({ephemeral: true})
+
     if(channel instanceof VoiceChannel) {
+
+      const msg = options.getString("link", true);
+
+      if(!msg) return await interaction.editReply({
+        content: "É ncessario informa um link do youtube!"
+      });
+
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: channel.guildId,
             adapterCreator: channel.guild.voiceAdapterCreator,
         });
-        const stream = ytdl('https://www.youtube.com/watch?v=Zrd3GhwG-7o', { filter: 'audioonly' });
-        const resource = createAudioResource(stream);
-        const player = createAudioPlayer();
-
-        player.play(resource);
-        connection.subscribe(player);
-
-        player.on(AudioPlayerStatus.Idle, () => connection.destroy());
-        await interaction.editReply({
-            content: "Musica adicionada com sucesso na lista!"
+        console.log(ytdl.validateURL(msg))
+        if(!ytdl.validateURL(msg)) {
+          await interaction.editReply({
+            content: `Link informado está invalido ou é um link privado, tente outro link!`
+          });
+          return;
+        }
+        try{
+          const stream = ytdl(msg, { filter: 'audioonly' });
+          stream.on('error', async error => {
+            console.error('Erro durante o streaming:', error);
+          return;
         });
+          const info = await ytdl.getBasicInfo(msg);
+          const resource = createAudioResource(stream);
+          const player = createAudioPlayer();
+  
+          player.play(resource);
+          connection.subscribe(player);
+  
+          player.on(AudioPlayerStatus.Idle, () => connection.destroy());
+  
+          await interaction.editReply({
+              content: `Musica: ${info.videoDetails.title} será tocada!`
+          });
+        }catch(err) {
+          await interaction.editReply({
+            content: `Ocorreu um erro ao tentar reproduzir a musica.!`
+          });
+        }
+
     }else {
+
         await interaction.editReply({
             content: "Você não está em um canal de voz!"
-        })
+        });
+
     }
   }
 });
